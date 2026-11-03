@@ -1,0 +1,49 @@
+{
+  "name": "hdcommunity-mng-toolkit",
+  "version": "0.1.0",
+  "description": "Agent toolkit for Huawei Cloud Community management consoles — MCP tools + Skills for blog review/online/top/stats and the growth-center management console (money-config change-request approval).",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/huaweicloud-mate/hdcommunity-mng-toolkit.git"
+  },
+  "files": [
+    "bin",
+    "src",
+    "skills",
+    "plugin.json",
+    "mcp.json",
+    ".claude-plugin",
+    ".codex-plugin"
+  ],
+  "bin": {
+    "hdcommunity-mng-toolkit": "bin/setup.cjs",
+    "hdcommunity-mng-toolkit-mcp": "src/mcp-server.mjs"
+  },
+  "scripts": {
+    "start": "node ./src/mcp-server.mjs",
+    "smoke": "node ./scripts/smoke.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "undici": "^8.11.2"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "huaweicloud",
+    "huawei-cloud",
+    "community",
+    "blog",
+    "growth",
+    "management",
+    "mcp",
+    "agent",
+    "skills",
+    "opencode",
+    "codex",
+    "codearts"
+  ],
+  "license": "Apache-2.0"
+}

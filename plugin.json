@@ -1,0 +1,14 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "hdcommunity-mng-toolkit",
+  "version": "0.1.0",
+  "description": "Huawei Cloud Community management-console Agent toolkit: MCP tools + Skills for blog review/online/top/stats and the growth-center management console (money-config change-request approval).",
+  "author": {
+    "name": "HuaweiCloud Community",
+    "url": "https://github.com/huaweicloud-mate"
+  },
+  "homepage": "https://github.com/huaweicloud-mate/hdcommunity-mng-toolkit",
+  "repository": "https://github.com/huaweicloud-mate/hdcommunity-mng-toolkit",
+  "license": "Apache-2.0",
+  "keywords": ["huaweicloud", "community", "blog", "growth", "management", "mcp", "agent", "skills"]
+}

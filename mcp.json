@@ -1,0 +1,10 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "hdcommunity-mng-toolkit": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "-p", "hdcommunity-mng-toolkit", "hdcommunity-mng-toolkit-mcp"]
+    }
+  }
+}
