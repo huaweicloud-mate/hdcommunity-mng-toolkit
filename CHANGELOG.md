@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0
+
+### Added — 成长中心业务侧能力（自 hdcommunity-toolkit 迁移）
+- 业务侧工具组 `hdgrow_*`（6，AK/SK）：查询 `points_query` / `server_tasks` / `server_prizes`；写入 `points_add` / `prize_exchange` / `issue_coupon`。
+- 涉钱写防护：默认 `dry_run` 预演 → 一次性 `confirm_token`（HMAC/TTL 5min/绑定请求体）→ 高风险阈值（面额>100/数量>10）→ 强制 `biz_id` → 禁自动重试。
+- Skill：`hd-grow-operator`。
+- 工具名与迁移前保持一致，调用方无需改名；业务侧鉴权用 AK/SK，与管理台 Bearer 登录无关。
+
 ## 0.1.0
 
 ### Added — 管理面 Agent 工具包（自 hdcommunity-toolkit 迁移）

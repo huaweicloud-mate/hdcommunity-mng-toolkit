@@ -1,7 +1,7 @@
 {
   "name": "hdcommunity-mng-toolkit",
-  "version": "0.1.0",
-  "description": "Huawei Cloud Community management-console Agent toolkit: MCP tools + Skills for blog review/online/top/stats and the growth-center management console (money-config change-request approval).",
+  "version": "0.2.0",
+  "description": "Huawei Cloud Community management/operator Agent toolkit: MCP tools + Skills for blog review/online/top/stats, the growth-center management console (money-config change-request approval), and growth business-side points/coupon issue and exchange.",
   "mcpServers": "./.mcp.json",
   "skills": "./skills/",
   "interface": {
