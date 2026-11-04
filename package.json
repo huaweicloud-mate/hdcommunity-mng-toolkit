@@ -1,6 +1,6 @@
 {
   "name": "hdcommunity-mng-toolkit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Agent toolkit for Huawei Cloud Community management consoles — MCP tools + Skills for blog review/online/top/stats and the growth-center management console (money-config change-request approval).",
   "type": "module",
   "repository": {
