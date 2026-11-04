@@ -1,0 +1,45 @@
+# Build and publish the package to npm via Trusted Publishing (OIDC).
+#
+# Trigger: manual only (workflow_dispatch) — run from the repository's Actions tab.
+#
+# One-time setup on npm (package → Settings → Trusted Publishing → GitHub Actions):
+#   Organization or user: huaweicloud-mate
+#   Repository:            hdcommunity-mng-toolkit
+#   Workflow filename:     npm-publish.yml   (filename only, exact, case-sensitive)
+#   Environment:           (leave empty)
+#   Allowed actions:       ✅ npm publish     (new configs default to "npm stage publish" only!)
+# Docs: https://docs.npmjs.com/trusted-publishers
+
+name: Node.js Package
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci
+      - run: npm run smoke
+
+  publish-npm:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # required for OIDC trusted publishing (+ automatic provenance)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm ci
+      - run: npm publish
