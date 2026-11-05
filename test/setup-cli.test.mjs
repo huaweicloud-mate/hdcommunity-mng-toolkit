@@ -191,6 +191,43 @@ describe('update', () => {
   });
 });
 
+describe('argument parsing', () => {
+  test('install --help --target all only prints help and writes nothing', () => {
+    const { stdout, status } = run(['install', '--help', '--target', 'all']);
+    assert.equal(status, 0);
+    assert.match(stdout, /Usage:/);
+    assert.doesNotMatch(stdout, /skills ->/);
+    assert.deepEqual(readdirSync(home), [], 'no target directory may be created');
+  });
+
+  test('--target=<value> (equals form) is honoured, not silently ignored', () => {
+    const { stdout, status } = run(['install', '--target=all']);
+    assert.equal(status, 0);
+    assert.ok(existsSync(join(home, '.atomcode', 'skills', SKILL)), `equals form should install all targets, got: ${stdout}`);
+  });
+
+  test('--target=all equals form on uninstall removes every target', () => {
+    assert.equal(run(['install', '--target', 'all']).status, 0);
+    const { stdout, status } = run(['uninstall', '--target=all']);
+    assert.equal(status, 0, `uninstall failed: ${stdout}`);
+    assert.equal(existsSync(join(home, '.atomcode', 'skills', SKILL)), false, 'equals form must uninstall all targets, not just opencode');
+    assert.equal(existsSync(join(home, '.config', 'opencode', 'skills', SKILL)), false);
+  });
+
+  test('--target without a value is an error, not a silent default', () => {
+    const { stdout, stderr, status } = run(['install', '--target']);
+    assert.equal(status, 1);
+    assert.match(`${stdout}\n${stderr}`, /--target/);
+    assert.deepEqual(readdirSync(home), [], 'no target directory may be created');
+  });
+
+  test('--target= (empty value) is an error, not a silent default', () => {
+    const { status } = run(['install', '--target=']);
+    assert.equal(status, 1);
+    assert.deepEqual(readdirSync(home), []);
+  });
+});
+
 describe('README / TARGETS consistency', () => {
   test('README documents every target with its install command', () => {
     for (const t of TARGETS) {
