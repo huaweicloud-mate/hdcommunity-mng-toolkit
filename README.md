@@ -9,15 +9,242 @@
 
 **要求**：Node.js ≥ 22。
 
+### 支持的 Agent（10 个）
+
+安装器支持以下 10 个 agent target（以 `src/setup-cli.mjs` 的 `TARGETS` 为单一真源，`install --target all` 与 `status` 均覆盖）：
+
+| target | Agent | Skills 落盘路径 | MCP 配置 |
+|---|---|---|---|
+| `opencode` | OpenCode | `~/.config/opencode/skills` | 自动写入 `opencode.json` |
+| `codex` | Codex CLI | `~/.codex/skills` | 手动（见 Other Agents） |
+| `codex-desktop` | Codex 桌面版 | `~/.codex/skills` | 手动（见 Other Agents） |
+| `codearts` | CodeArts Agent（码道） | `~/.codeartsdoer/skills` | 手动（见 Other Agents） |
+| `codearts-work` | CodeArts Work | `~/.codeartswork/skills` | 手动（见 Other Agents） |
+| `workbuddy` | WorkBuddy | `~/.workbuddy/skills` | 手动（见 Other Agents） |
+| `dsh` | DeepSeek Harness (DSH) | `~/.dsh/skills`（`DSH_HOME` 可覆盖） | 手动（见下文 DSH 小节） |
+| `hermes` | Hermes | `~/.hermes/skills` | 手动（见 Other Agents） |
+| `openclaw` | OpenClaw | `~/.openclaw/skills` | 手动（见 Other Agents） |
+| `atomcode` | AtomCode | `~/.atomcode/skills` | 手动（见 Other Agents） |
+
+> `codex` 与 `codex-desktop` 共用 `~/.codex/skills`（`install --target all` 只拷贝一次）。
+
+### Quick Start
+
 ```bash
-npx --yes hdcommunity-mng-toolkit install --target opencode   # 或 codex / codearts / ... / all
+npx --yes hdcommunity-mng-toolkit install              # 省略 --target = 默认 opencode
+npx --yes hdcommunity-mng-toolkit doctor               # 只读体检：Node / Skills / MCP 配置
+npx --yes hdcommunity-mng-toolkit status               # 查看 10 个 target 的安装状态
+npx --yes hdcommunity-mng-toolkit update               # 检查版本并给出升级指引
+npx --yes hdcommunity-mng-toolkit uninstall --target opencode
+```
+
+- **省略 `--target` 的行为**：`install` / `uninstall` 都以 **`opencode`** 为目标（不是自动检测已装 agent），命令会打印默认提示。
+- **未知 target**：命令报错、列出全部合法值（10 个 + `all`）、退出码 1，且不会创建任何目录。
+- 安装完成后**重启会话**，新 Skills 与 MCP 工具才会被加载。
+- **MCP 自动注册仅覆盖 `opencode`**；其余 target 安装后按 [Other Agents](#other-agents) 的片段手动注册。
+
+> 让 Agent 帮你装：`请运行 npx --yes hdcommunity-mng-toolkit install --target <你的 agent>，再用 status 确认，并提醒我重启会话。`
+
+### OpenCode
+
+```bash
+npx --yes hdcommunity-mng-toolkit install --target opencode
+```
+
+- Skills 落盘：`~/.config/opencode/skills/`
+- MCP：**自动合并**到 `~/.config/opencode/opencode.json` 的 `mcp.hdcommunity-mng-toolkit`（local stdio，`npx -y -p hdcommunity-mng-toolkit hdcommunity-mng-toolkit-mcp`）；已有配置无法解析时回退为打印片段。
+- **重启会话**后生效。
+
+```bash
+npx --yes hdcommunity-mng-toolkit doctor
 npx --yes hdcommunity-mng-toolkit status
 npx --yes hdcommunity-mng-toolkit uninstall --target opencode
 ```
 
-安装后**重启会话**加载新工具/Skill。
+### Codex
 
-> 让 Agent 帮你装：`请运行 npx --yes hdcommunity-mng-toolkit install --target opencode，status 确认，并提醒我重启会话。`
+```bash
+npx --yes hdcommunity-mng-toolkit install --target codex
+```
+
+- Skills 落盘：`~/.codex/skills/`
+- MCP：**不自动写入**，安装后按 [Other Agents](#other-agents) 的片段加入 Codex 的 `mcpServers`。
+- **重启 Codex 会话**（重开 CLI）后生效。
+
+```bash
+npx --yes hdcommunity-mng-toolkit doctor
+npx --yes hdcommunity-mng-toolkit status
+npx --yes hdcommunity-mng-toolkit uninstall --target codex
+```
+
+### Codex Desktop
+
+```bash
+npx --yes hdcommunity-mng-toolkit install --target codex-desktop
+```
+
+- Skills 落盘：`~/.codex/skills/`（与 `codex` 共用同一目录）
+- MCP：**不自动写入**，按 [Other Agents](#other-agents) 的片段手动注册。
+- **重启 Codex 桌面应用**后生效。
+
+```bash
+npx --yes hdcommunity-mng-toolkit doctor
+npx --yes hdcommunity-mng-toolkit status
+npx --yes hdcommunity-mng-toolkit uninstall --target codex-desktop
+```
+
+### CodeArts Agent（码道）
+
+```bash
+npx --yes hdcommunity-mng-toolkit install --target codearts
+```
+
+- Skills 落盘：`~/.codeartsdoer/skills/`
+- MCP：**不自动写入**，按 [Other Agents](#other-agents) 的片段注册到 CodeArts 的 MCP 设置。
+- **重启会话**后生效。
+
+```bash
+npx --yes hdcommunity-mng-toolkit doctor
+npx --yes hdcommunity-mng-toolkit status
+npx --yes hdcommunity-mng-toolkit uninstall --target codearts
+```
+
+### CodeArts Work
+
+```bash
+npx --yes hdcommunity-mng-toolkit install --target codearts-work
+```
+
+- Skills 落盘：`~/.codeartswork/skills/`
+- MCP：**不自动写入**，按 [Other Agents](#other-agents) 的片段注册。
+- **重启会话**后生效。
+
+```bash
+npx --yes hdcommunity-mng-toolkit doctor
+npx --yes hdcommunity-mng-toolkit status
+npx --yes hdcommunity-mng-toolkit uninstall --target codearts-work
+```
+
+### WorkBuddy
+
+```bash
+npx --yes hdcommunity-mng-toolkit install --target workbuddy
+```
+
+- Skills 落盘：`~/.workbuddy/skills/`
+- MCP：**不自动写入**，按 [Other Agents](#other-agents) 的片段注册。
+- **重启会话**后生效。
+
+```bash
+npx --yes hdcommunity-mng-toolkit doctor
+npx --yes hdcommunity-mng-toolkit status
+npx --yes hdcommunity-mng-toolkit uninstall --target workbuddy
+```
+
+### DeepSeek Harness (DSH)
+
+```bash
+npx --yes hdcommunity-mng-toolkit install --target dsh
+```
+
+- Skills 落盘：`$DSH_HOME/skills`（未设置 `DSH_HOME` 时为 `~/.dsh/skills`）
+- MCP：**当前不自动写入**。DSH 通过 `$DSH_HOME/profiles/<profile>/cordis.patch.yml`（profile 默认 `web`）的 `insert:` 语法注册 MCP，需手工追加：
+
+```yaml
+- insert:
+    - id: mcp-hdcommunity
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: hdcommunity
+        transport: stdio
+        command: npx
+        args: ['-y', '-p', 'hdcommunity-mng-toolkit', 'hdcommunity-mng-toolkit-mcp']
+        env:
+          HDGROW_BASE: '<你的 HDGROW_BASE>'
+          HDCOMMUNITY_BASE: '<你的 HDCOMMUNITY_BASE>'
+```
+
+  > 必须使用 `insert:` 键语法：裸 `- id:` 是对已有条目的定点覆盖，DSH 会告警 `patch: entry not found`。
+  > 自动注册（install 写入 / uninstall 移除）已在姊妹仓 `hdcommunity-toolkit` 的 PR #22 落地，本仓后续同步。
+- **重启 DSH 会话**后生效。
+
+```bash
+npx --yes hdcommunity-mng-toolkit doctor
+npx --yes hdcommunity-mng-toolkit status
+npx --yes hdcommunity-mng-toolkit uninstall --target dsh
+```
+
+### Hermes
+
+```bash
+npx --yes hdcommunity-mng-toolkit install --target hermes
+```
+
+- Skills 落盘：`~/.hermes/skills/`
+- MCP：**不自动写入**，按 [Other Agents](#other-agents) 的片段注册。
+- **重启会话**后生效。
+
+```bash
+npx --yes hdcommunity-mng-toolkit doctor
+npx --yes hdcommunity-mng-toolkit status
+npx --yes hdcommunity-mng-toolkit uninstall --target hermes
+```
+
+### OpenClaw
+
+```bash
+npx --yes hdcommunity-mng-toolkit install --target openclaw
+```
+
+- Skills 落盘：`~/.openclaw/skills/`
+- MCP：**不自动写入**，按 [Other Agents](#other-agents) 的片段注册。
+- **重启会话**后生效。
+
+```bash
+npx --yes hdcommunity-mng-toolkit doctor
+npx --yes hdcommunity-mng-toolkit status
+npx --yes hdcommunity-mng-toolkit uninstall --target openclaw
+```
+
+### AtomCode
+
+```bash
+npx --yes hdcommunity-mng-toolkit install --target atomcode
+```
+
+- Skills 落盘：`~/.atomcode/skills/`
+- MCP：**不自动写入**，按 [Other Agents](#other-agents) 的片段注册。
+- **重启会话**后生效。
+
+```bash
+npx --yes hdcommunity-mng-toolkit doctor
+npx --yes hdcommunity-mng-toolkit status
+npx --yes hdcommunity-mng-toolkit uninstall --target atomcode
+```
+
+### Other Agents
+
+未内置 target 的 agent，只要支持 MCP，就手动注册本包的 MCP server（local stdio）：
+
+```json
+{
+  "mcpServers": {
+    "hdcommunity-mng-toolkit": {
+      "command": "npx",
+      "args": ["-y", "-p", "hdcommunity-mng-toolkit", "hdcommunity-mng-toolkit-mcp"],
+      "env": {
+        "HDGROW_BASE": "<你的 HDGROW_BASE>",
+        "HDCOMMUNITY_BASE": "<你的 HDCOMMUNITY_BASE>"
+      }
+    }
+  }
+}
+```
+
+- OpenCode 使用 `mcp.<name>` 结构（`type: local` + `command` 数组），由 `install --target opencode` 自动写入。
+- Skills 仍需落盘，装到对应 agent 的 skills 目录：`npx --yes hdcommunity-mng-toolkit install --target <agent>`；未内置的 agent 可用 `npx --yes hdcommunity-mng-toolkit install --target all` 后手工复制 `skills/`。
+- **remote HTTP（Streamable HTTP）传输尚未实现**：`--transport remote` 目前会回退 stdio，请使用上面的 stdio 片段。
+- 认证类环境变量（`HDCOMMUNITY_ADMIN_USER`、`HW_ACCESS_KEY` 等）同样通过这些 `env` 传入，见[配置](#配置环境变量)。
 
 ## 认证
 
