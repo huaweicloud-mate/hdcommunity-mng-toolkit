@@ -1,12 +1,12 @@
 {
   "name": "hdcommunity-mng-toolkit",
-  "version": "0.2.0",
-  "description": "Huawei Cloud Community management/operator Agent toolkit: MCP tools + Skills for blog review/online/top/stats, the growth-center management console (money-config change-request approval), and growth business-side points/coupon issue and exchange.",
+  "version": "0.4.0",
+  "description": "Huawei Cloud Community management console Agent toolkit: MCP tools + Skills for blog review/online/top/stats.",
   "mcpServers": "./.mcp.json",
   "skills": "./skills/",
   "interface": {
     "displayName": "HDCommunity MNG Toolkit",
-    "shortDescription": "Huawei Cloud Community management-console toolkit — MCP tools + Skills for blog & growth operations.",
+    "shortDescription": "Huawei Cloud Community management-console toolkit — MCP tools + Skills for blog operations.",
     "developerName": "HuaweiCloud Community",
     "category": "Cloud"
   },
@@ -15,5 +15,5 @@
     "url": "https://github.com/huaweicloud-mate"
   },
   "license": "Apache-2.0",
-  "keywords": ["huaweicloud", "community", "blog", "growth", "management", "mcp", "agent", "skills"]
+  "keywords": ["huaweicloud", "community", "blog", "management", "mcp", "agent", "skills"]
 }

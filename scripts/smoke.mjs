@@ -9,8 +9,6 @@ const expect = [
   'hdcommunity_admin_login',
   'hdcommunity_admin_blog_review',
   'hdcommunity_admin_blog_risk_check',
-  'hdgrow_admin_login',
-  'hdgrow_admin_change_create',
 ];
 
 const missing = expect.filter((n) => !names.includes(n));
