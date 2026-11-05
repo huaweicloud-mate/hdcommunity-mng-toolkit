@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+
+### Added — 错误可观测性
+- 业务侧网关 403 追加白名单 auth_type 排查提示（iam 类型白名单 / appcode 替代 / `hdgrow_admin_whitelist_page`）（#3，PR #4）。
+
+### Fixed — 安装器
+- `install/uninstall` 携带 `--help` 时只打印帮助，不再误触发安装/卸载（#2，PR #5）。
+
 ## 0.2.0
 
 ### Added — 成长中心业务侧能力（自 hdcommunity-toolkit 迁移）
