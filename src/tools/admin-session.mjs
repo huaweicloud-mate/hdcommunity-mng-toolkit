@@ -1,71 +1,28 @@
-// Unified admin session: one login → BOTH management consoles; one logout → BOTH.
+// Admin session: one login → the community (blog) management console; one logout → same.
 //
-// The community (blog) console and the growth console are two different backends
-// (hdblogservice vs HDGrowService) with their own /manage/auth/login. This helper
-// fans out the SAME username/password to both and caches each token in its own
-// namespace (blog: setSessionToken; grow: setGrowToken), so a single login logs into
-// both and a single logout logs out of both.
+// Auth uses /manage/auth/login with an internal account; the Bearer token is cached
+// per session (setSessionToken) so subsequent admin tools reuse it.
 
-import { loginAdmin, loginGrowAdmin, logoutAdmin, logoutGrowAdmin } from './http-client.mjs';
-import {
-  setSessionToken,
-  setGrowToken,
-  clearSessionToken,
-  clearGrowToken,
-} from '../session.mjs';
+import { loginAdmin, logoutAdmin } from './http-client.mjs';
+import { setSessionToken, clearSessionToken } from '../session.mjs';
 import { ok, fail, CODES } from '../errors.mjs';
 
 /**
- * Log in to BOTH consoles with the same credentials.
- * Partial success is allowed (returns per-console status); fails only if both fail.
- * @returns {Promise<{ok:boolean, data?:{blog:object, grow:object}, error?:{code,message}}>}
+ * Log in to the community management console.
+ * @returns {Promise<{ok:boolean, data?:object, error?:{code:string,message:string}}>}
  */
-export async function loginBoth(sessionId, username, password) {
-  const blog = { ok: false };
-  const grow = { ok: false };
-
+export async function loginAdminSession(sessionId, username, password) {
   const b = await loginAdmin(username, password);
-  if (b.ok) {
-    const d = b.data || {};
-    const user = d.user || {};
-    setSessionToken(sessionId, { token: d.token, username: user.username, role: user.role });
-    blog.ok = true;
-    blog.username = user.username;
-    blog.role = user.role;
-  } else {
-    blog.code = b.error?.code;
-    blog.message = b.error?.message;
-  }
-
-  const g = await loginGrowAdmin(username, password);
-  if (g.ok) {
-    const d = g.data || {};
-    setGrowToken(sessionId, { token: d.token, username: d.username, role: d.role });
-    grow.ok = true;
-    grow.username = d.username;
-    grow.role = d.role;
-    grow.mustChangePassword = d.must_change_password;
-  } else {
-    grow.code = g.error?.code;
-    grow.message = g.error?.message;
-  }
-
-  if (!blog.ok && !grow.ok) {
-    return fail(
-      blog.code || grow.code || CODES.UNAUTHORIZED,
-      `登录失败（两个管理台均失败）：blog=${blog.message || '-'}；grow=${grow.message || '-'}`,
-    );
-  }
-  return ok({ blog, grow });
+  if (!b.ok) return fail(b.error?.code || CODES.UNAUTHORIZED, b.error?.message || '登录失败');
+  const d = b.data || {};
+  const user = d.user || {};
+  setSessionToken(sessionId, { token: d.token, username: user.username, role: user.role });
+  return ok({ username: user.username, role: user.role, mustChangePassword: d.must_change_password });
 }
 
-/**
- * Log out of BOTH consoles (each uses its own cached token) and clear both caches.
- */
-export async function logoutBoth(sessionId) {
-  const b = await logoutAdmin(sessionId);
-  const g = await logoutGrowAdmin(sessionId);
+/** Log out of the management console and clear the cached token. */
+export async function logoutAdminSession(sessionId) {
+  await logoutAdmin(sessionId);
   clearSessionToken(sessionId);
-  clearGrowToken(sessionId);
-  return ok({ loggedOut: true, blog: b.ok, grow: g.ok });
+  return ok({ loggedOut: true });
 }

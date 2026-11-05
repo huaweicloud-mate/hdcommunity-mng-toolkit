@@ -1,9 +1,9 @@
 # HDCommunity MNG Toolkit
 
-华为云社区 · **管理面/运营面 Agent 工具包**（MCP 工具 + Skill）。让 AI 编码助手（opencode / codex / 码道 等）以自然语言完成社区与成长中心**管理台**的运营操作，以及成长中心业务侧的查积分/发积分/发券/兑换。
+华为云社区 · **管理面 Agent 工具包**（MCP 工具 + Skill）。让 AI 编码助手（opencode / codex / 码道 等）以自然语言完成社区**管理台**的运营操作。
 
 - 本包为**端侧（工具包）**实现，结构/安装方式与用户面工具包 [`hdcommunity-toolkit`](https://github.com/huaweicloud-mate/hdcommunity-toolkit) 一致。
-- 只含**管理面/运营面**能力；看/写/发博客、浏览任务与权益等**用户面**在 `hdcommunity-toolkit`。
+- 只含**管理面**能力；看/写/发博客等**用户面**在 `hdcommunity-toolkit`。
 
 ## 安装
 
@@ -24,26 +24,14 @@ npx --yes hdcommunity-mng-toolkit uninstall --target opencode
 | 面 | 工具前缀 | 鉴权 |
 |---|---|---|
 | 博客管理台 | `hdcommunity_admin_*` | 内部账号登录 → Bearer（`/manage/auth/login`） |
-| 成长中心管理台 | `hdgrow_admin_*` | 同上（登录 `/manage/auth/*`，接口 `/agent/admin/grow/**`） |
-| 成长中心业务侧 | `hdgrow_*`（points/task/prize/发券） | 华为云 **AK/SK**（`HW_ACCESS_KEY`/`HW_SECRET_KEY`），与管理员登录无关 |
 | 内容风控 | `hdcommunity_admin_blog_risk_check` | 无（本地词库） |
-
-**统一登录**：`hdcommunity_admin_login` 与 `hdgrow_admin_login` 会**用同一账号同时登录两个管理台**；`*_logout` 同时登出。
 
 管理台 401 自动重登（可选）：设 `HDCOMMUNITY_ADMIN_USER` / `HDCOMMUNITY_ADMIN_PASS`（或 `credentials.json` 的 `admin_user`/`admin_pass`）。
 
-## 工具清单（博客管理台 + 成长管理台）
+## 工具清单（博客管理台）
 
 ### 博客管理台 `hdcommunity_admin_*`
 登录/注销、`blog_page`/`blog_detail`/`blog_review`/`blog_review_batch`、`blog_online`/`blog_top`/`blog_records`、`comment_page`/`comment_review`/`comment_review_batch`/`comment_online`、`stats`。
-
-### 成长中心管理台 `hdgrow_admin_*`（20）
-登录/注销；变更单 `change_create|commit|approve|apply|revert|get|page`；`task_page|_get`、`prize_page|_get`、`whitelist_page`；记录审计 `record_points|_exchange|_issue|_job`、`user_page`；`stats`。
-
-### 成长中心业务侧 `hdgrow_*`（6，AK/SK）
-查询：`points_query`（查积分）、`server_tasks`（带个人完成状态）、`server_prizes`；
-写入：`points_add`（发积分）、`prize_exchange`（兑换）、`issue_coupon`（发券）。
-涉钱写操作默认 `dry_run` 预演 + 一次性 `confirm_token` + 高风险阈值 + 强制 `biz_id`。
 
 ### 内容风控
 `hdcommunity_admin_blog_risk_check`（本地词库；审核时自动附带，标记风险不阻断）。
@@ -53,9 +41,7 @@ npx --yes hdcommunity-mng-toolkit uninstall --target opencode
 | 变量 | 默认 | 说明 |
 |---|---|---|
 | `HDCOMMUNITY_BASE` | （见 config） | 博客服务地址（用户面+管理面合并单服务） |
-| `HDGROW_BASE` | **必填（无默认）** | 成长服务地址，如 `https://<网关>/api/v1/hdgrowservice`；未配置 → `CONFIG_MISSING` |
 | `HDCOMMUNITY_ADMIN_USER` / `HDCOMMUNITY_ADMIN_PASS` | 空 | 管理台账号（401 自动重登用） |
-| `HDGROW_RISK_FACE_AMOUNT_MAX` / `HDGROW_RISK_QUANTITY_MAX` | `100` / `10` | 涉钱高风险阈值（业务侧写入） |
 
 > 在 Agent 的 MCP 配置里通过 `env` 传入。
 
@@ -64,8 +50,6 @@ npx --yes hdcommunity-mng-toolkit uninstall --target opencode
 | Skill | 用途 |
 |---|---|
 | `hd-blog-operator` | 博客运营：待审清理 / 内容巡检 |
-| `hd-grow-admin` | 成长中心管理台：变更单分级审批、任务/权益/白名单、记录审计、统计 |
-| `hd-grow-operator` | 成长中心业务侧：查积分/任务/权益、发积分、发券、兑换（涉钱强制预演） |
 
 ## 开发
 
