@@ -270,21 +270,40 @@ async function update() {
 }
 
 function parseArgs(argv) {
-  const args = { _: [] };
+  const args = { _: [], targetGiven: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '--target') args.target = argv[++i];
-    else if (a === '--help' || a === '-h') args.help = true;
-    else args._.push(a);
+    if (a === '--help' || a === '-h') args.help = true;
+    else if (a.startsWith('--target=')) {
+      // Support the `--target=all` form; an empty value is reported as missing below.
+      args.targetGiven = true;
+      args.target = a.slice('--target='.length);
+    } else if (a === '--target') {
+      // A bare `--target` (no value, or followed by another flag) must not silently
+      // fall back to the default target.
+      args.targetGiven = true;
+      const value = argv[i + 1];
+      if (value !== undefined && !value.startsWith('-')) {
+        args.target = value;
+        i++;
+      }
+    } else args._.push(a);
   }
   return args;
 }
 
 /**
  * Validate a --target value. Returns null (and sets exitCode) when it is unknown.
- * An omitted --target resolves to DEFAULT_TARGET.
+ * An omitted --target resolves to DEFAULT_TARGET; a `--target` flag without a value is an error.
  */
-function resolveTarget(raw) {
+function resolveTarget(raw, { given = false } = {}) {
+  if (given && !raw) {
+    console.error('Missing value for --target.');
+    console.error(`Valid targets: ${TARGETS.join(', ')}, all`);
+    console.error(`Omit --target to use the default target (${DEFAULT_TARGET}).`);
+    process.exitCode = 1;
+    return null;
+  }
   if (!raw) return DEFAULT_TARGET;
   if (raw === 'all' || TARGETS.includes(raw)) return raw;
   console.error(`Unknown target: ${raw}`);
@@ -315,18 +334,21 @@ MCP is auto-registered only for ${MCP_AUTO_TARGETS.join(', ')}; other targets pr
 
 export async function main(argv = process.argv.slice(2)) {
   const args = parseArgs(argv);
-  const cmd = args._[0] || (args.help ? 'help' : undefined);
+  // --help / -h wins over any command and target: print usage and touch nothing.
+  if (args.help) return printHelp();
+
+  const cmd = args._[0];
   const needsTarget = cmd === 'install' || cmd === 'uninstall';
-  const target = needsTarget ? resolveTarget(args.target) : undefined;
+  const target = needsTarget ? resolveTarget(args.target, { given: args.targetGiven }) : undefined;
   if (needsTarget && !target) return;
 
   switch (cmd) {
     case 'install':
-      if (!args.target) console.log(`No --target given; defaulting to ${DEFAULT_TARGET}.`);
+      if (!args.targetGiven) console.log(`No --target given; defaulting to ${DEFAULT_TARGET}.`);
       install(target);
       break;
     case 'uninstall':
-      if (!args.target) console.log(`No --target given; defaulting to ${DEFAULT_TARGET}.`);
+      if (!args.targetGiven) console.log(`No --target given; defaulting to ${DEFAULT_TARGET}.`);
       uninstall(target);
       break;
     case 'status':
