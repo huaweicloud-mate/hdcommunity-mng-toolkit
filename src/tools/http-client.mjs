@@ -16,7 +16,7 @@ import {
   loadAdminCredentials,
   hasAdminCredentials,
 } from '../credentials.mjs';
-import { ok, fail, mapBackendError, CODES } from '../errors.mjs';
+import { ok, fail, mapBackendError, withForbiddenHint, CODES } from '../errors.mjs';
 import { getSessionToken, setSessionToken, clearSessionToken, getGrowToken } from '../session.mjs';
 import { GROW_BIZ } from './grow-endpoints.mjs';
 
@@ -244,7 +244,9 @@ export async function callGrow(method, path, { query, body } = {}) {
     'X-HW-REGION': creds.region || REGION,
   };
   if (creds.securityToken) headers['X-HW-Security-Token'] = creds.securityToken;
-  return unwrap(await doGrowRequest(path, { method, query, body, headers }));
+  // Gateway 403 on /agent/grow/** usually means the whitelist has no iam entry
+  // for this AK (or auth_type mismatch): append the troubleshooting hint.
+  return withForbiddenHint(unwrap(await doGrowRequest(path, { method, query, body, headers })));
 }
 
 // ---------------------------------------------------------------------------
