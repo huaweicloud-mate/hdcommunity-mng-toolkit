@@ -13,8 +13,10 @@
 
 1. `docs(#6): 需求文档与方案设计`
 2. `test(#6): setup-cli target 真源与 README 一致性失败测试`
-3. `feat(#6): setup-cli TARGETS 单一真源 + target 校验 + doctor/update`
-4. `docs(#6): README 安装章节重写为 10 个 agent 逐节说明`
+3. `feat(#6): 安装器 TARGETS 单一真源 + target 校验 + doctor/update，README 逐 agent 章节同步`
+
+> 第 3 步把脚本与 README 合并为一个原子提交：README 一致性断言是同一份契约，拆开会让中间提交处于
+> 测试红状态。
 
 ## 测试 seam 说明
 

@@ -6,7 +6,9 @@ const fileUrl = require('node:url').pathToFileURL(
   path.join(__dirname, '..', 'src', 'setup-cli.mjs'),
 ).href;
 
-import(fileUrl).catch((error) => {
-  console.error(error.message);
-  process.exit(1);
-});
+import(fileUrl)
+  .then((mod) => mod.main())
+  .catch((error) => {
+    console.error(error.message);
+    process.exit(1);
+  });
