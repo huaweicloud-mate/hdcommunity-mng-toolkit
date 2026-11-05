@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0
+
+### Added — README 多 Agent 支持
+- SUPPORTED_TARGETS 单一事实源，省略 `--target` 自动检测；README 重写为逐 Agent 安装流程，doctor/update 语义与实现对齐（#6/#7，PR #7）。
+
+### Added — 默认域名现网化
+- BACKEND_BASE 兜底默认切换为现网 `open-dataset.huaweicloud.com`，`HDCOMMUNITY_BASE` 覆盖保留；新增 config 默认值/覆盖行为与文档无残留防护测试（#9，PR #10）。
+
 ## 0.4.0
 
 ### Removed — 上线前收敛为博客管理台
