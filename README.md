@@ -21,7 +21,7 @@
 | `codearts` | CodeArts Agent（码道） | `~/.codeartsdoer/skills` | 手动（见 Other Agents） |
 | `codearts-work` | CodeArts Work | `~/.codeartswork/skills` | 手动（见 Other Agents） |
 | `workbuddy` | WorkBuddy | `~/.workbuddy/skills` | 手动（见 Other Agents） |
-| `dsh` | DeepSeek Harness (DSH) | `~/.dsh/skills`（`DSH_HOME` 可覆盖） | 手动（见下文 DSH 小节） |
+| `dsh` | DeepSeek Harness (DSH) | `~/.dsh/skills`（`DSH_HOME` 可覆盖） | 自动写入 `profiles/<profile>/cordis.patch.yml` |
 | `hermes` | Hermes | `~/.hermes/skills` | 手动（见 Other Agents） |
 | `openclaw` | OpenClaw | `~/.openclaw/skills` | 手动（见 Other Agents） |
 | `atomcode` | AtomCode | `~/.atomcode/skills` | 手动（见 Other Agents） |
@@ -41,7 +41,7 @@ npx --yes hdcommunity-mng-toolkit uninstall --target opencode
 - **省略 `--target` 的行为**：`install` / `uninstall` 都以 **`opencode`** 为目标（不是自动检测已装 agent），命令会打印默认提示。
 - **未知 target**：命令报错、列出全部合法值（10 个 + `all`）、退出码 1，且不会创建任何目录。
 - 安装完成后**重启会话**，新 Skills 与 MCP 工具才会被加载。
-- **MCP 自动注册仅覆盖 `opencode`**；其余 target 安装后按 [Other Agents](#other-agents) 的片段手动注册。
+- **MCP 自动注册覆盖 `opencode` 与 `dsh`**；其余 target 安装后按 [Other Agents](#other-agents) 的片段手动注册。
 
 > 让 Agent 帮你装：`请运行 npx --yes hdcommunity-mng-toolkit install --target <你的 agent>，再用 status 确认，并提醒我重启会话。`
 
@@ -148,24 +148,10 @@ npx --yes hdcommunity-mng-toolkit install --target dsh
 ```
 
 - Skills 落盘：`$DSH_HOME/skills`（未设置 `DSH_HOME` 时为 `~/.dsh/skills`）
-- MCP：**当前不自动写入**。DSH 通过 `$DSH_HOME/profiles/<profile>/cordis.patch.yml`（profile 默认 `web`）的 `insert:` 语法注册 MCP，需手工追加：
-
-```yaml
-- insert:
-    - id: mcp-hdcommunity
-      name: '@deepseek-ai/dsh-mcp-client'
-      config:
-        serverName: hdcommunity
-        transport: stdio
-        command: npx
-        args: ['-y', '-p', 'hdcommunity-mng-toolkit', 'hdcommunity-mng-toolkit-mcp']
-        env:
-          HDGROW_BASE: '<你的 HDGROW_BASE>'
-          HDCOMMUNITY_BASE: '<你的 HDCOMMUNITY_BASE>'
-```
-
-  > 必须使用 `insert:` 键语法：裸 `- id:` 是对已有条目的定点覆盖，DSH 会告警 `patch: entry not found`。
-  > 自动注册（install 写入 / uninstall 移除）已在姊妹仓 `hdcommunity-toolkit` 的 PR #22 落地，本仓后续同步。
+- MCP：**自动写入** `$DSH_HOME/profiles/<profile>/cordis.patch.yml`（profile 默认 `web`，可用 `DSH_PROFILE` 覆盖），使用 `insert:` 键语法注册 `id: mcp-hdcommunity`；`env.HDCOMMUNITY_BASE` 取当前 `HDCOMMUNITY_BASE`（未设置时为现网默认地址）。
+  - 按 id 幂等：重复 install 不会产生重复条目；若你已手写同 id 条目，install 不会重复写入，uninstall 也不会删除它。
+  - `uninstall --target dsh` 仅移除本工具写入的受管条目，保留其它用户内容。
+  - 若 `DSH_HOME` 不是可写目录，或已有 `cordis.patch.yml` 不是 YAML 序列（如 mapping），install 会 fail-fast（非 0 退出）并给出修复指引，当次不写入 skills 或 MCP 条目。
 - **重启 DSH 会话**后生效。
 
 ```bash

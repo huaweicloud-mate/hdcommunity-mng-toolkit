@@ -11,6 +11,13 @@ import { homedir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { readPackageVersion } from './version.mjs';
+import {
+  dshPatchFile,
+  dshPatchState,
+  removeDshPatchEntry,
+  upsertDshPatch,
+  validateDshConfig,
+} from './dsh-patch.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PKG_ROOT = join(__dirname, '..');
@@ -22,7 +29,7 @@ const NODE_MIN_MAJOR = 22;
 const REGISTRY_TIMEOUT_MS = 2500;
 
 /** Targets whose MCP config this CLI writes automatically (all others print a snippet). */
-const MCP_AUTO_TARGETS = Object.freeze(['opencode']);
+const MCP_AUTO_TARGETS = Object.freeze(['opencode', 'dsh']);
 
 /**
  * Single source of truth for the supported agent targets.
@@ -142,13 +149,65 @@ function printGenericSnippet(targets) {
   console.log(JSON.stringify(snippet, null, 2));
 }
 
+function printDshGuidance(file, code, reason) {
+  console.error(`[dsh] ${code}: ${reason}`);
+  console.error(`[dsh] patch file: ${file}`);
+  console.error('[dsh] Fix the DSH config, then re-run `install --target dsh`:');
+  console.error('  - `DSH_HOME` (or `~/.dsh`) must be a writable directory; `DSH_PROFILE` selects the profile (default: web).');
+  console.error('  - An existing `cordis.patch.yml` must be a YAML sequence (`- insert:` entries); mappings cannot be appended.');
+  console.error('[dsh] No skills or MCP entries were written by this run.');
+}
+
+/** Validate the dsh patch destination up front so a failure leaves no partial install. */
+function ensureDshReady() {
+  const result = validateDshConfig();
+  if (result.ok) return true;
+  printDshGuidance(result.file, result.code, result.reason);
+  process.exitCode = 1;
+  return false;
+}
+
+function mergeDshMcp(target) {
+  const file = dshPatchFile();
+  if (!ensureDshReady()) return false;
+  let result;
+  try {
+    result = upsertDshPatch(file);
+  } catch (error) {
+    printDshGuidance(file, 'CONFIG_INVALID', error.message);
+    process.exitCode = 1;
+    return false;
+  }
+  if (result.action === 'invalid') {
+    printDshGuidance(file, 'CONFIG_INVALID', 'existing cordis.patch.yml is not a YAML sequence document');
+    process.exitCode = 1;
+    return false;
+  }
+  const detail = result.action === 'skipped' ? 'already registered' : result.action;
+  console.log(`[${target}] MCP config -> ${file} (${detail})`);
+  return true;
+}
+
 function mergeMcp(target) {
+  if (target === 'dsh') return mergeDshMcp(target);
   const r = mergeOpencodeConfig();
   if (r.merged) {
     console.log(`[${target}] MCP config -> ${r.file}`);
-  } else {
-    console.log(`[${target}] could not merge MCP config (${r.reason}); add manually:`);
-    printGenericSnippet([target]);
+    return true;
+  }
+  console.log(`[${target}] could not merge MCP config (${r.reason}); add manually:`);
+  printGenericSnippet([target]);
+  return false;
+}
+
+function removeDshMcp() {
+  const file = dshPatchFile();
+  try {
+    const r = removeDshPatchEntry(file);
+    console.log(`[dsh] MCP config ${r.removed ? 'removed from' : 'not found in'} ${file}`);
+  } catch (error) {
+    console.error(`[dsh] could not update ${file}: ${error.message}`);
+    process.exitCode = 1;
   }
 }
 
@@ -164,6 +223,9 @@ function groupBySkillsDir(targets) {
 }
 
 function installAll() {
+  // Validate dsh before copying any target so an invalid dsh config cannot
+  // leave a half-installed environment behind.
+  if (TARGETS.includes('dsh') && !ensureDshReady()) return;
   for (const [dest, names] of groupBySkillsDir(TARGETS)) {
     const skills = copySkills(dest);
     console.log(`[${names.join(', ')}] skills -> ${dest} (${skills.length} skills)`);
@@ -178,6 +240,9 @@ function install(target) {
   if (target === 'all') {
     installAll();
   } else {
+    // Fail fast before copying skills: an invalid dsh destination must not
+    // leave a partial install on disk.
+    if (target === 'dsh' && !ensureDshReady()) return;
     const dest = skillsDirFor(target);
     const skills = copySkills(dest);
     console.log(`[${target}] skills -> ${dest} (${skills.length} skills)`);
@@ -196,6 +261,7 @@ function uninstall(target) {
     }
     console.log(`[${names.join(', ')}] removed skills from ${dest}`);
   }
+  if (targets.includes('dsh')) removeDshMcp();
 }
 
 function status() {
@@ -233,6 +299,13 @@ function doctor() {
 
   const cfgFile = opencodeConfigFile();
   console.log(`opencode MCP: ${hasOpencodeMcpEntry() ? 'configured' : 'not configured'} (${cfgFile})`);
+
+  const dshFile = dshPatchFile();
+  const dshState = dshPatchState(dshFile);
+  console.log(`dsh MCP: ${dshState} (${dshFile})`);
+  if (dshState === 'INVALID') {
+    problems.push(`dsh MCP config is invalid (${dshFile}) — expected a YAML sequence document`);
+  }
 
   if (problems.length) {
     console.error(`doctor: ${problems.length} problem(s) found`);

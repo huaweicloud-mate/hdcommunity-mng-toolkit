@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Added — dsh MCP 自动注册
+- `install --target dsh` 在安装 Skills 的同时，自动写入 `$DSH_HOME/profiles/<profile>/cordis.patch.yml` 的受管 `insert:` 条目（`id: mcp-hdcommunity`；profile 默认 `web`，支持 `DSH_PROFILE` 覆盖，`HDCOMMUNITY_BASE` 可覆盖）。
+- 按 id 幂等：重复安装不重复写入；手写同 id 条目不被重复写入，也不会被卸载删除。
+- `uninstall --target dsh` 仅移除受管条目，保留用户手写内容。
+- `doctor` 显示 dsh MCP `OK` / `MISSING` / `INVALID`。
+- `DSH_HOME` 不可写或已有 patch 不是 YAML 序列时 fail-fast，输出修复指引且无部分写入。
+
 ## 0.5.0
 
 ### Added — README 多 Agent 支持
