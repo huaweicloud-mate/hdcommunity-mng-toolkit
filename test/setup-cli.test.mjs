@@ -10,7 +10,7 @@
 import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, existsSync, readFileSync, readdirSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, rmSync, existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -45,12 +45,16 @@ afterEach(() => {
 });
 
 /** Run the CLI with an isolated HOME so nothing touches the real user env. */
-function run(args) {
+function run(args, extraEnv = {}) {
   return spawnSync(process.execPath, [BIN, ...args], {
-    env: { ...process.env, HOME: home, DSH_HOME: join(home, '.dsh') },
+    env: { ...process.env, HOME: home, DSH_HOME: join(home, '.dsh'), ...extraEnv },
     encoding: 'utf8',
     timeout: 20_000,
   });
+}
+
+function dshPatchPath(profile = 'web', dshHome = join(home, '.dsh')) {
+  return join(dshHome, 'profiles', profile, 'cordis.patch.yml');
 }
 
 function statusLineFor(out, target) {
@@ -151,6 +155,106 @@ describe('install', () => {
     const hermes = run(['install', '--target', 'hermes']).stdout;
     assert.match(hermes, /mcpServers/);
     assert.match(hermes, /hdcommunity-mng-toolkit-mcp/);
+  });
+});
+
+describe('dsh MCP auto-registration', () => {
+  test('install --target dsh writes the managed insert entry and no longer prints a snippet', () => {
+    const { stdout, status } = run(['install', '--target', 'dsh']);
+    assert.equal(status, 0, stdout);
+    assert.match(stdout, /MCP config/);
+    assert.doesNotMatch(stdout, /For dsh, add this MCP server/);
+    const file = dshPatchPath();
+    assert.ok(existsSync(file), 'cordis.patch.yml should be created');
+    const text = readFileSync(file, 'utf8');
+    assert.match(text, /^- insert:$/m);
+    assert.match(text, /id: mcp-hdcommunity/);
+    assert.match(text, /name: '@deepseek-ai\/dsh-mcp-client'/);
+    assert.match(text, /serverName: hdcommunity/);
+    assert.match(text, /'-y', '-p', 'hdcommunity-mng-toolkit', 'hdcommunity-mng-toolkit-mcp'/);
+    assert.ok(existsSync(join(home, '.dsh', 'skills', SKILL, 'SKILL.md')));
+  });
+
+  test('reinstall keeps exactly one managed entry', () => {
+    assert.equal(run(['install', '--target', 'dsh']).status, 0);
+    const { stdout, status } = run(['install', '--target', 'dsh']);
+    assert.equal(status, 0, stdout);
+    assert.match(stdout, /already registered/);
+    const text = readFileSync(dshPatchPath(), 'utf8');
+    assert.equal((text.match(/^\s+- id: mcp-hdcommunity$/gm) || []).length, 1);
+  });
+
+  test('uninstall removes only the managed entry, keeping user content', () => {
+    const file = dshPatchPath();
+    mkdirSync(join(home, '.dsh', 'profiles', 'web'), { recursive: true });
+    writeFileSync(file, '- insert:\n    - id: user-entry\n      name: keep-me\n');
+    assert.equal(run(['install', '--target', 'dsh']).status, 0);
+    const { stdout, status } = run(['uninstall', '--target', 'dsh']);
+    assert.equal(status, 0, stdout);
+    const text = readFileSync(file, 'utf8');
+    assert.match(text, /id: user-entry/);
+    assert.doesNotMatch(text, /id: mcp-hdcommunity/);
+    assert.equal(existsSync(join(home, '.dsh', 'skills', SKILL)), false);
+  });
+
+  test('a hand-written same-id entry is not duplicated by install and survives uninstall', () => {
+    const file = dshPatchPath();
+    mkdirSync(join(home, '.dsh', 'profiles', 'web'), { recursive: true });
+    const handwritten = '- insert:\n    - id: mcp-hdcommunity\n      name: mine\n';
+    writeFileSync(file, handwritten);
+    assert.equal(run(['install', '--target', 'dsh']).status, 0);
+    assert.equal(readFileSync(file, 'utf8'), handwritten);
+    assert.equal(run(['uninstall', '--target', 'dsh']).status, 0);
+    assert.equal(readFileSync(file, 'utf8'), handwritten);
+  });
+
+  test('DSH_HOME and DSH_PROFILE overrides are honoured', () => {
+    const customHome = join(home, 'custom-dsh');
+    const { status } = run(['install', '--target', 'dsh'], { DSH_HOME: customHome, DSH_PROFILE: 'qa' });
+    assert.equal(status, 0);
+    assert.ok(existsSync(dshPatchPath('qa', customHome)));
+    assert.ok(existsSync(join(customHome, 'skills', SKILL, 'SKILL.md')));
+    assert.equal(existsSync(join(home, '.dsh')), false);
+  });
+
+  test('non-sequence patch file fails fast with guidance and no partial write', () => {
+    const file = dshPatchPath();
+    mkdirSync(join(home, '.dsh', 'profiles', 'web'), { recursive: true });
+    writeFileSync(file, 'model: gpt\n');
+    const { stdout, stderr, status } = run(['install', '--target', 'dsh']);
+    assert.equal(status, 1);
+    const message = `${stdout}\n${stderr}`;
+    assert.match(message, /CONFIG_INVALID/);
+    assert.match(message, /cordis\.patch\.yml/);
+    assert.match(message, /YAML sequence/);
+    assert.equal(readFileSync(file, 'utf8'), 'model: gpt\n');
+    assert.equal(existsSync(join(home, '.dsh', 'skills')), false, 'skills must not be copied');
+  });
+
+  test('DSH_HOME pointing at a file fails fast with guidance and no partial write', () => {
+    const badHome = join(home, 'dsh-is-a-file');
+    writeFileSync(badHome, 'x');
+    const { stdout, stderr, status } = run(['install', '--target', 'dsh'], { DSH_HOME: badHome });
+    assert.equal(status, 1);
+    const message = `${stdout}\n${stderr}`;
+    assert.match(message, /CONFIG_MISSING/);
+    assert.match(message, /DSH_HOME/);
+    assert.equal(existsSync(join(home, '.dsh', 'skills')), false, 'skills must not be copied');
+  });
+
+  test('doctor reports dsh MCP MISSING, OK and INVALID', () => {
+    assert.match(run(['doctor']).stdout, /dsh MCP: MISSING/);
+    assert.equal(run(['install', '--target', 'dsh']).status, 0);
+    assert.match(run(['doctor']).stdout, /dsh MCP: OK/);
+    writeFileSync(dshPatchPath(), 'model: gpt\n');
+    const invalid = run(['doctor']);
+    assert.match(invalid.stdout, /dsh MCP: INVALID/);
+    assert.equal(invalid.status, 1);
+  });
+
+  test('install --target all registers dsh too', () => {
+    assert.equal(run(['install', '--target', 'all']).status, 0);
+    assert.match(readFileSync(dshPatchPath(), 'utf8'), /id: mcp-hdcommunity/);
   });
 });
 
