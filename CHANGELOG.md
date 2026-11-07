@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.0
+
+### Added
+- `install --target dsh` 自动写入 cordis.patch.yml MCP 注册：按 id 幂等、uninstall 同步移除、doctor 集成（#11，PR #12）。
+
 ## Unreleased
 
 ### Added — dsh MCP 自动注册
