@@ -259,6 +259,8 @@ describe('dsh MCP auto-registration', () => {
 });
 
 describe('uninstall', () => {
+  const opencodeConfigPath = () => join(home, '.config', 'opencode', 'opencode.json');
+
   test('--target all removes every installed target', () => {
     assert.equal(run(['install', '--target', 'all']).status, 0);
     assert.equal(run(['uninstall', '--target', 'all']).status, 0);
@@ -270,6 +272,74 @@ describe('uninstall', () => {
   test('rejects an unknown target', () => {
     const { status } = run(['uninstall', '--target', 'bogus']);
     assert.equal(status, 1);
+  });
+
+  test('--target opencode removes the managed MCP entry, leaving valid JSON (Issue #13)', () => {
+    assert.equal(run(['install', '--target', 'opencode']).status, 0);
+    assert.match(readFileSync(opencodeConfigPath(), 'utf8'), /hdcommunity/);
+
+    const { stdout, status } = run(['uninstall', '--target', 'opencode']);
+    assert.equal(status, 0, stdout);
+    assert.match(stdout, /MCP config removed from/);
+
+    const text = readFileSync(opencodeConfigPath(), 'utf8');
+    assert.equal((text.match(/hdcommunity/g) || []).length, 0, `residual managed entries: ${text}`);
+    const cfg = JSON.parse(text);
+    assert.equal(cfg.mcp['hdcommunity-mng-toolkit'], undefined);
+    assert.equal(existsSync(join(home, '.config', 'opencode', 'skills', SKILL)), false);
+  });
+
+  test('uninstall keeps the user other MCP entries and top-level fields (Issue #13)', () => {
+    const file = opencodeConfigPath();
+    mkdirSync(join(home, '.config', 'opencode'), { recursive: true });
+    const userConfig = {
+      theme: 'dark',
+      mcp: { 'user-server': { type: 'local', command: ['npx', 'user-mcp'] } },
+    };
+    writeFileSync(file, JSON.stringify(userConfig, null, 2));
+    assert.equal(run(['install', '--target', 'opencode']).status, 0);
+    assert.equal(run(['uninstall', '--target', 'opencode']).status, 0);
+
+    const cfg = JSON.parse(readFileSync(file, 'utf8'));
+    assert.equal(cfg.theme, 'dark');
+    assert.deepEqual(cfg.mcp['user-server'], userConfig.mcp['user-server']);
+    assert.equal(cfg.mcp['hdcommunity-mng-toolkit'], undefined);
+  });
+
+  test('uninstall without an install is harmless and creates no file (Issue #13)', () => {
+    const { stdout, status } = run(['uninstall', '--target', 'opencode']);
+    assert.equal(status, 0, stdout);
+    assert.match(stdout, /MCP config not found in/);
+    assert.equal(existsSync(opencodeConfigPath()), false, 'must not create an empty config file');
+  });
+
+  test('install after uninstall keeps exactly one managed MCP entry (Issue #13)', () => {
+    assert.equal(run(['install', '--target', 'opencode']).status, 0);
+    assert.equal(run(['uninstall', '--target', 'opencode']).status, 0);
+    assert.equal(run(['install', '--target', 'opencode']).status, 0);
+    const cfg = JSON.parse(readFileSync(opencodeConfigPath(), 'utf8'));
+    assert.ok(cfg.mcp['hdcommunity-mng-toolkit']);
+    const text = readFileSync(opencodeConfigPath(), 'utf8');
+    assert.equal((text.match(/"hdcommunity-mng-toolkit"\s*:/g) || []).length, 1);
+  });
+
+  test('uninstall --target all removes the opencode MCP entry too (Issue #13)', () => {
+    assert.equal(run(['install', '--target', 'all']).status, 0);
+    assert.match(readFileSync(opencodeConfigPath(), 'utf8'), /hdcommunity/);
+    assert.equal(run(['uninstall', '--target', 'all']).status, 0);
+    const cfg = JSON.parse(readFileSync(opencodeConfigPath(), 'utf8'));
+    assert.equal(cfg.mcp['hdcommunity-mng-toolkit'], undefined);
+    assert.equal((readFileSync(opencodeConfigPath(), 'utf8').match(/hdcommunity/g) || []).length, 0);
+  });
+
+  test('a config without the managed entry is left untouched (Issue #13)', () => {
+    const file = opencodeConfigPath();
+    mkdirSync(join(home, '.config', 'opencode'), { recursive: true });
+    const text = JSON.stringify({ mcp: { 'user-server': { type: 'local', command: ['npx', 'x'] } } }, null, 2);
+    writeFileSync(file, text);
+    const { stdout, status } = run(['uninstall', '--target', 'opencode']);
+    assert.equal(status, 0, stdout);
+    assert.equal(readFileSync(file, 'utf8'), text, 'file must not be rewritten when there is nothing to remove');
   });
 });
 

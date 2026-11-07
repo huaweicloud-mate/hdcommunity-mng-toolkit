@@ -135,6 +135,33 @@ function hasOpencodeMcpEntry() {
   }
 }
 
+/**
+ * Remove the managed `mcp[PKG_NAME]` entry from the opencode config.
+ * Mirrors removeDshMcp(): only the managed key is touched, the rest of the
+ * user config is preserved, and a missing file/key is a harmless no-op.
+ */
+function removeOpencodeMcp() {
+  const file = opencodeConfigFile();
+  if (!existsSync(file)) {
+    console.log(`[opencode] MCP config not found in ${file}`);
+    return;
+  }
+  let cfg;
+  try {
+    cfg = JSON.parse(readFileSync(file, 'utf8'));
+  } catch {
+    console.error(`[opencode] could not update ${file}: existing config is not valid JSON`);
+    return;
+  }
+  if (!cfg.mcp || !cfg.mcp[PKG_NAME]) {
+    console.log(`[opencode] MCP config not found in ${file}`);
+    return;
+  }
+  delete cfg.mcp[PKG_NAME];
+  writeFileSync(file, JSON.stringify(cfg, null, 2));
+  console.log(`[opencode] MCP config removed from ${file}`);
+}
+
 function printGenericSnippet(targets) {
   const snippet = {
     mcpServers: {
@@ -261,6 +288,7 @@ function uninstall(target) {
     }
     console.log(`[${names.join(', ')}] removed skills from ${dest}`);
   }
+  if (targets.includes('opencode')) removeOpencodeMcp();
   if (targets.includes('dsh')) removeDshMcp();
 }
 
