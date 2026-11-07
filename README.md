@@ -53,6 +53,7 @@ npx --yes hdcommunity-mng-toolkit install --target opencode
 
 - Skills 落盘：`~/.config/opencode/skills/`
 - MCP：**自动合并**到 `~/.config/opencode/opencode.json` 的 `mcp.hdcommunity-mng-toolkit`（local stdio，`npx -y -p hdcommunity-mng-toolkit hdcommunity-mng-toolkit-mcp`）；已有配置无法解析时回退为打印片段。
+- `uninstall --target opencode` 在移除 skills 的同时**删除该 MCP 条目**，保留其它 MCP 条目与配置字段；未安装时卸载为无害操作。
 - **重启会话**后生效。
 
 ```bash
