@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.0
+
+### Features
+- uninstall --target opencode 时同步清理 MCP 配置（#13，PR #14）。
+
 ## 0.6.0
 
 ### Added
