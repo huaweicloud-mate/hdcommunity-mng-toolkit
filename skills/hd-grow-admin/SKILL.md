@@ -52,6 +52,8 @@ hdgrow_admin_change_create  { 同参数, dry_run:false, confirm_token } → { id
 
 ## Config targets
 
+修改既有任务优先用 `hdgrow_admin_task_update { id, ...只传要改的字段 }`：自动判定 `field_group`（不含 points/points_limit/cycle_limit 时为 `basic`=LOW），再走两步确认。
+
 | 目标 | target_type | field_group | after 示例 |
 |---|---|---|---|
 | 任务积分 | `task` | `points` | `{points:100, points_limit:10000}` |

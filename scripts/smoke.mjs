@@ -11,6 +11,8 @@ const expect = [
   'hdcommunity_admin_blog_risk_check',
   'hdgrow_admin_login',
   'hdgrow_admin_change_create',
+  'hdgrow_admin_env',
+  'hdgrow_admin_task_update',
 ];
 
 const missing = expect.filter((n) => !names.includes(n));

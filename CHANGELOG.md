@@ -12,6 +12,7 @@
 - 首个自然人变更申请 `natural_person_page|_get|_approve|_reject`（approver/admin，驳回原因必填）。
 - 用户黑名单 `user_block`（原因 ≤512 字）/ `user_unblock`。
 - 任务分类 `task_categories`（建任务取 `category_id`）。
+- 任务修改 `task_update`（只需传脏字段；自动判定 `field_group`，描述/指南等非涉钱字段为 LOW）。
 - 审计筛选 `keyword`、用户 `blocked`、变更单 `include_archived`。
 
 ### Changed — 写操作两步确认（防误操作）
