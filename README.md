@@ -43,8 +43,8 @@ npx --yes hdcommunity-mng-toolkit uninstall --target opencode
 ### 博客管理台 `hdcommunity_admin_*`
 登录/注销、`blog_page`/`blog_detail`/`blog_review`/`blog_review_batch`、`blog_online`/`blog_top`/`blog_records`、`comment_page`/`comment_review`/`comment_review_batch`/`comment_online`、`stats`。
 
-### 成长中心管理台 `hdgrow_admin_*`（35）
-登录/注销；环境自检 `env`；变更单 `change_create|commit|approve|apply|revert|cancel|archive|get|page`；`task_page|_get`、`task_categories`、`prize_page|_get`、`whitelist_page`；记录审计 `record_points|_exchange|_issue|_job`、`user_page`、`user_block`/`user_unblock`；积分补发 `reissue_create|_page|_get|_approve|_issue`；首个自然人 `natural_person_page|_get|_approve|_reject`；`stats`。
+### 成长中心管理台 `hdgrow_admin_*`（36）
+登录/注销；环境自检 `env`；变更单 `change_create|commit|approve|apply|revert|cancel|archive|get|page`；`task_page|_get`、`task_update`、`task_categories`、`prize_page|_get`、`whitelist_page`；记录审计 `record_points|_exchange|_issue|_job`、`user_page`、`user_block`/`user_unblock`；积分补发 `reissue_create|_page|_get|_approve|_issue`；首个自然人 `natural_person_page|_get|_approve|_reject`；`stats`。
 
 ### 成长中心业务侧 `hdgrow_*`（6，AK/SK）
 查询：`points_query`（查积分）、`server_tasks`（带个人完成状态）、`server_prizes`；

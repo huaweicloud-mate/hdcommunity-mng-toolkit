@@ -87,6 +87,51 @@ const naturalPersonPreview = async (ctx, a, action) => {
   };
 };
 
+const TASK_UPDATE_FIELDS = [
+  'task_title',
+  'task_desc',
+  'category_id',
+  'biz_type',
+  'points',
+  'points_limit',
+  'cycle_type',
+  'cycle_limit',
+  'start_time',
+  'end_time',
+  'jump_url',
+  'task_guide',
+  'enabled',
+  'is_show',
+  'sort_order',
+];
+const TASK_MONEY_FIELDS = ['points', 'points_limit', 'cycle_limit'];
+
+/**
+ * Build the change-request payload for updating an existing task. Only fields the
+ * caller actually provided are sent (dirty-only), so non-money edits become LOW risk.
+ * @returns {{ok: true, body: object, fields: string[]} | {ok: false, message: string}}
+ */
+export function buildTaskUpdatePayload(a) {
+  const after = {};
+  for (const field of TASK_UPDATE_FIELDS) {
+    if (a[field] !== undefined) after[field] = a[field];
+  }
+  const fields = Object.keys(after);
+  if (!fields.length) return { ok: false, message: '至少提供一个要修改的字段（task_desc / task_guide / enabled / points …）' };
+  const fieldGroup = TASK_MONEY_FIELDS.some((f) => after[f] !== undefined) ? 'points' : 'basic';
+  return {
+    ok: true,
+    fields,
+    body: {
+      target_type: 'task',
+      target_id: a.id,
+      field_group: fieldGroup,
+      after,
+      reason: a.reason,
+    },
+  };
+}
+
 export const GROW_ADMIN_TOOLS = {
   definitions: [
     {
@@ -193,6 +238,36 @@ export const GROW_ADMIN_TOOLS = {
       name: 'hdgrow_admin_change_archive',
       description: 'Archive a terminal change request (rejected/reverted/cancelled/applied). 归档变更单（仅终态）。',
       inputSchema: { type: 'object', required: ['id'], properties: { id: P.str('变更单 id'), ...TOKEN_PROP, ...CONFIRM_PROPS } },
+    },
+
+    {
+      name: 'hdgrow_admin_task_update',
+      description: 'Update an existing task by sending only changed fields; auto risk/field_group and two-step confirm. 修改既有任务（仅传脏字段）。',
+      inputSchema: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: P.str('任务 ID'),
+          task_title: P.str('任务标题'),
+          task_desc: P.str('任务描述'),
+          category_id: P.str('任务分类 ID'),
+          biz_type: P.str('业务方 opc / codearts'),
+          points: P.int('单次积分'),
+          points_limit: P.int('积分预算上限'),
+          cycle_type: P.str('DAILY / WEEKLY / MONTHLY / LIMIT / NO_LIMIT'),
+          cycle_limit: P.int('每周期次数'),
+          start_time: P.str('生效时间（ISO8601）'),
+          end_time: P.str('结束时间（ISO8601）'),
+          jump_url: P.str('跳转地址'),
+          task_guide: P.str('任务指南（HTML/文本）'),
+          enabled: P.int('启用 1/0'),
+          is_show: P.int('展示 1/0'),
+          sort_order: P.int('排序'),
+          reason: P.str('变更原因'),
+          ...TOKEN_PROP,
+          ...CONFIRM_PROPS,
+        },
+      },
     },
 
     // ---- points reissue (money-sensitive: approve/issue grants points) ----
@@ -591,6 +666,27 @@ if (!r.ok) {
         () => callGrowAdmin(ctx?.sessionId, 'POST', GROW_ADMIN.changeArchive(a.id), { token: a.token }),
       ),
 
+    'hdgrow_admin_task_update': (a, ctx) => {
+      const built = buildTaskUpdatePayload(a);
+      if (!built.ok) return fail(CODES.PARAM_ERROR, built.message);
+      return runWithConfirm(
+        ctx,
+        'hdgrow_admin_task_update',
+        a,
+        async () => {
+          const r = await callGrowAdmin(ctx?.sessionId, 'POST', GROW_ADMIN.changePreview, { body: built.body, token: a.token });
+          if (!r.ok) {
+            if (r.error?.code === CODES.NOT_FOUND) {
+              return { action: '修改任务（后端无预览接口，按参数预览）', ...built.body };
+            }
+            return r;
+          }
+          return { action: `修改任务（脏字段：${built.fields.join(', ')}）`, ...r.data, reason: a.reason };
+        },
+        () => callGrowAdmin(ctx?.sessionId, 'POST', GROW_ADMIN.change, { body: built.body, token: a.token }),
+      );
+    },
+
     'hdgrow_admin_reissue_create': (a, ctx) =>
       runWithConfirm(
         ctx,
@@ -710,8 +806,8 @@ if (!r.ok) {
         () => callGrowAdmin(ctx?.sessionId, 'POST', GROW_ADMIN.userUnblock(a.id), { token: a.token }),
       ),
 
-    'hdgrow_admin_env': () => ok(envInfo()),
     'hdgrow_admin_task_categories': () => callGrowShow('GET', GROW_SHOW.taskCategories),
+    'hdgrow_admin_env': () => ok(envInfo()),
 
     'hdgrow_admin_task_page': (a, ctx) =>
       callGrowAdmin(ctx?.sessionId, 'GET', GROW_ADMIN.taskPage, {

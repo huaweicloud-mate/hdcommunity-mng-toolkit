@@ -17,6 +17,7 @@
 - 首个自然人变更申请：`natural_person_page|_get|_approve|_reject`（approver/admin，驳回原因必填）。
 - 用户黑名单：`hdgrow_admin_user_block`（原因 ≤512 字）/ `_unblock`。
 - 任务分类：`hdgrow_admin_task_categories`（只读，建任务取 `category_id`）。
+- 任务修改：`hdgrow_admin_task_update`（只传脏字段；不含金额字段为 `basic`=LOW，自动排除 `task_tag`）。
 
 ### Changed — 查询筛选对齐管理台
 - 审计工具 `record_points|_exchange|_issue|_job` 增加 `keyword`；`user_page` 增加 `keyword` 与 `blocked`；`change_page` 增加 `include_archived`。
